@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1772989518494",
+    "sku": "aaaa",
+    "name": "aaaaaa",
+    "price": "1111",
+    "category": "WOMEN",
+    "subCategory": "accessories",
+    "media": "/images/Screenshot 2025-12-21 151054.png"
+  },
+  {
+    "id": "1772989714618",
+    "sku": "aaaaaaaaa",
+    "name": "aaaaa",
+    "price": "333333",
+    "category": "WOMEN",
+    "subCategory": "accessories",
+    "media": "[\"/images/Screenshot 2026-01-14 183846.png\",\"/images/Screenshot 2025-12-21 151054.png\"]"
+  },
+  {
+    "id": "1772989952045",
+    "sku": "ee",
+    "name": "eeeeeeee",
+    "price": "2000",
+    "category": "WOMEN",
+    "subCategory": "accessories",
+    "media": "/images/Screenshot 2026-01-14 154109.png"
+  }
+]

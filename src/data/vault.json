@@ -1,0 +1,54 @@
+[
+  {
+    "id": "1773211112513",
+    "name": "aaaa",
+    "sku": "aa",
+    "price": "2221",
+    "originalPrice": "",
+    "size": "",
+    "category": "WOMEN",
+    "subCategory": "accessories",
+    "media": [
+      "/images/portfolio.jpg"
+    ]
+  },
+  {
+    "id": "1773211323017",
+    "name": "2222222",
+    "sku": "nnn",
+    "price": "1111",
+    "originalPrice": "222",
+    "size": "nnn sss ddd",
+    "category": "WOMEN",
+    "subCategory": "accessories",
+    "media": [
+      "/images/globalbank.png",
+      "/images/chips.png"
+    ]
+  },
+  {
+    "id": "1773212382799",
+    "name": "bbbbbbbbbb",
+    "sku": "bbb",
+    "price": "111",
+    "originalPrice": "",
+    "size": "xs, m, l, s, xl",
+    "category": "WOMEN",
+    "subCategory": "footwear",
+    "media": []
+  },
+  {
+    "id": "1773221497681",
+    "name": "bbbbbbbb",
+    "sku": "bb",
+    "price": "21",
+    "originalPrice": "",
+    "size": "l",
+    "category": "MEN",
+    "subCategory": "outerwear",
+    "media": [
+      "hero-sectio.mp4",
+      "cloud-web.png"
+    ]
+  }
+]
