@@ -5,13 +5,15 @@ import { CAT_MAP } from '@/lib/constants';
 import Media from '@/components/Media';
 import { createClient } from '@/lib/supabase';
 
+// Move client initialization outside to keep the reference stable
+const supabase = createClient();
+
 export default function CategoryPage({ params }: { params: Promise<{ catId: string }> }) {
   const { catId } = use(params);
   const [activeSub, setActiveSub] = useState("");
   const [vaultData, setVaultData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const supabase = createClient();
 
   useEffect(() => {
     setMounted(true);
@@ -26,7 +28,8 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .eq('category', catId);
+          .eq('category', catId)
+          .order('created_at', { ascending: false }); // Added ordering to show newest first
 
         if (error) throw error;
         setVaultData(data || []);
@@ -39,7 +42,7 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
     };
 
     fetchVault();
-  }, [catId]);
+  }, [catId]); 
 
   const items = useMemo(() => {
     if (!Array.isArray(vaultData)) return [];
@@ -83,8 +86,6 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
             let finalUrl = "";
             try {
               if (typeof item.image_url === 'string') {
-                // If it's a stringified array "['url']", parse it. 
-                // If it's just a string, it will fail parsing and we use it directly.
                 if (item.image_url.startsWith('[') || item.image_url.startsWith('{')) {
                   const parsed = JSON.parse(item.image_url);
                   finalUrl = Array.isArray(parsed) ? parsed[0] : parsed;
@@ -106,7 +107,6 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
                 style={{ animationDelay: `${idx * 0.05}s` }}
               >
                 <div className="cc-media reveal-frame">
-                  {/* Passing BOTH media and basePath to trigger every possible check in Media.tsx */}
                   <Media item={{ 
                     ...item, 
                     media: finalUrl,

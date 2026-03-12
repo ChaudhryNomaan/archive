@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useVelos } from '@/context/VelosContext';
 import { createClient } from '@/lib/supabase';
@@ -15,6 +15,11 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Swipe logic refs
+  const touchStart = useRef<number | null>(null);
+  const touchEnd = useRef<number | null>(null);
+  const minSwipeDistance = 50;
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -66,7 +71,29 @@ export default function ProductPage() {
     return url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes('video');
   };
 
+  // Navigation Logic
   const nextImage = () => setActiveIndex((prev) => (prev + 1) % mediaItems.length);
+  const prevImage = () => setActiveIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
+
+  // Swipe Handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchEnd.current = null;
+    touchStart.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) nextImage();
+    if (isRightSwipe) prevImage();
+  };
 
   const availableSizes = product.specifications?.size 
     ? product.specifications.size.split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -81,7 +108,7 @@ export default function ProductPage() {
           background: #fff; 
           color: #000; 
           overflow: hidden;
-          padding-top: 80px; /* Offset for the global header */
+          padding-top: 80px;
         }
         
         .pd-visual { 
@@ -92,42 +119,40 @@ export default function ProductPage() {
           align-items: center;
           justify-content: center;
           cursor: w-resize;
+          touch-action: pan-y; /* Allows vertical scrolling but captures horizontal swipes */
         }
 
         .pd-gallery-container {
           position: relative;
           width: 100%;
           height: 100%;
-          padding: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          display: grid;
+          place-items: center;
         }
 
         .pd-gallery-item { 
-          position: absolute;
-          top: 60px;
-          left: 60px;
-          right: 60px;
-          bottom: 60px;
+          grid-area: 1 / 1;
+          width: 100%;
+          height: 100%;
           display: flex; 
           align-items: center; 
           justify-content: center;
           opacity: 0;
           visibility: hidden;
-          transition: opacity 0.6s ease, visibility 0.6s;
+          transition: opacity 0.6s ease;
+          padding: 60px;
         }
 
         .pd-gallery-item.active {
           opacity: 1;
           visibility: visible;
+          z-index: 2;
         }
 
         .pd-gallery-item img, .pd-gallery-item video {
           max-width: 100%;
           max-height: 100%;
           object-fit: contain;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.05);
         }
         
         .gallery-controls {
@@ -160,7 +185,7 @@ export default function ProductPage() {
         }
 
         .pd-sticky-wrap { 
-          padding: 60px 50px 120px 50px; /* Increased top padding to clear header */
+          padding: 60px 50px 120px 50px;
           display: flex; 
           flex-direction: column; 
           gap: 40px; 
@@ -195,14 +220,21 @@ export default function ProductPage() {
 
         @media (max-width: 1024px) {
           .pd-root { flex-direction: column; height: auto; overflow: visible; padding-top: 60px; }
-          .pd-visual { height: 60vh; width: 100%; }
+          .pd-visual { height: 60vh; width: 100%; min-height: 400px; }
           .pd-gallery-container { padding: 30px; }
+          .pd-gallery-item { padding: 20px; }
           .pd-sidebar { width: 100%; height: auto; }
           .pd-sticky-wrap { padding: 40px 30px; }
         }
       `}</style>
 
-      <div className="pd-visual" onClick={nextImage}>
+      <div 
+        className="pd-visual" 
+        onClick={() => { if (!touchEnd.current) nextImage(); }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         <div className="pd-gallery-container">
           {mediaItems.map((url, idx) => (
             <div 
