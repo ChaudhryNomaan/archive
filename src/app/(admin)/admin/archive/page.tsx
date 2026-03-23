@@ -164,6 +164,15 @@ export default function ArchiveAdmin() {
     setSelectedFiles(prev => [...prev, ...newEntries]);
   };
 
+  // Helper to remove files from the preview list
+  const removeSelectedFile = (idx: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const removeExistingMedia = (url: string) => {
+    setExistingMedia(prev => prev.filter(m => m !== url));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -299,6 +308,27 @@ export default function ArchiveAdmin() {
 
             <div className="input-group">
               <label>MEDIA ASSETS</label>
+
+              {/* MEDIA PREVIEW SECTION */}
+              {(existingMedia.length > 0 || selectedFiles.length > 0) && (
+                <div className="media-preview-grid">
+                  {existingMedia.map((url, idx) => (
+                    <div key={`existing-${idx}`} className="preview-item">
+                      <img src={url} alt="Existing" />
+                      <button type="button" className="remove-preview" onClick={() => removeExistingMedia(url)}>×</button>
+                      <span className="preview-tag">SYNCED</span>
+                    </div>
+                  ))}
+                  {selectedFiles.map((entry, idx) => (
+                    <div key={`new-${idx}`} className="preview-item pending">
+                      <img src={entry.preview} alt="New" />
+                      <button type="button" className="remove-preview" onClick={() => removeSelectedFile(idx)}>×</button>
+                      <span className="preview-tag">NEW</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="upload-block" onClick={() => fileInputRef.current?.click()}>
                 <span>UPLOAD MEDIA +</span>
                 <input type="file" ref={fileInputRef} hidden multiple accept="image/*,video/*" onChange={handleFileChange} />
@@ -407,6 +437,14 @@ export default function ArchiveAdmin() {
         .upload-block { border: 1px dashed #222; padding: 20px; text-align: center; color: #444; font-size: 9px; cursor: pointer; }
         .cancel-btn { background: none; border: none; color: #444; font-size: 8px; margin-top: 10px; cursor: pointer; text-transform: uppercase; }
         .empty-msg { font-size: 8px; letter-spacing: 2px; color: #333; text-align: center; margin-top: 40px; }
+
+        /* Preview Grid New Styles */
+        .media-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .preview-item { position: relative; aspect-ratio: 1; background: #111; border: 1px solid #222; overflow: hidden; }
+        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-item.pending img { opacity: 0.5; }
+        .remove-preview { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.7); color: white; border: none; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; z-index: 5; }
+        .preview-tag { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); font-size: 6px; letter-spacing: 1px; padding: 4px; text-align: center; color: #d4af37; }
       `}</style>
     </div>
   );

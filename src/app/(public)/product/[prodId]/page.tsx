@@ -16,6 +16,11 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // Swipe Logic Refs
+  const touchStart = useRef<number | null>(null);
+  const touchEnd = useRef<number | null>(null);
+  const minSwipeDistance = 50;
+
   useEffect(() => {
     const fetchProduct = async () => {
       if (!prodId || !selectedCity) return;
@@ -26,7 +31,7 @@ export default function ProductPage() {
           .from('products')
           .select('*')
           .eq('slug', prodId)
-          .eq('city_id', selectedCity) // Updated to match city_id column from your schema
+          .eq('city_id', selectedCity) 
           .single();
 
         if (error) throw error;
@@ -49,6 +54,30 @@ export default function ProductPage() {
 
     fetchProduct();
   }, [prodId, supabase, selectedCity]); 
+
+  // Navigation Logic
+  const nextImage = () => setActiveIndex((prev) => (prev + 1) % mediaItems.length);
+  const prevImage = () => setActiveIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
+
+  // Touch Handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchEnd.current = null;
+    touchStart.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart.current || !touchEnd.current) return;
+    const distance = touchStart.current - touchEnd.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) nextImage();
+    if (isRightSwipe) prevImage();
+  };
 
   if (loading) {
     return (
@@ -74,9 +103,6 @@ export default function ProductPage() {
   const isVideo = (url: string) => {
     return url.match(/\.(mp4|webm|ogg|mov)$/i) || url.includes('video');
   };
-
-  // Navigation Logic
-  const nextImage = () => setActiveIndex((prev) => (prev + 1) % mediaItems.length);
 
   const availableSizes = product.specifications?.size 
     ? product.specifications.size.split(',').map((s: string) => s.trim()).filter(Boolean)

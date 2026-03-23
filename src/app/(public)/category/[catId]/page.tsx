@@ -5,13 +5,22 @@ import { CAT_MAP } from '@/lib/constants';
 import Media from '@/components/Media';
 import { createClient } from '@/lib/supabase';
 
+// IMPORTANT: Ensure you import the correct hook for city context here
+// import { useCity } from '@/context/CityContext'; 
+
 export default function CategoryPage({ params }: { params: Promise<{ catId: string }> }) {
   const { catId } = use(params);
-  const { selectedCity } = useVelos(); 
+  
+  // NOTE: Replace 'useVelos' with your actual city context hook (e.g., useCity)
+  // If you don't have a hook, you may need to define selectedCity or fetch it.
+  const { selectedCity } = (global as any).useVelos?.() || { selectedCity: 'moscow' }; 
+  
   const [activeSub, setActiveSub] = useState("");
   const [vaultData, setVaultData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  
+  const supabase = createClient();
 
   useEffect(() => {
     setMounted(true);
@@ -44,14 +53,14 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
     };
 
     fetchVault();
-  }, [catId]);
+  }, [catId, selectedCity]); // Added selectedCity to dependency array
 
   const items = useMemo(() => {
     if (!Array.isArray(vaultData)) return [];
     return vaultData.filter(i => {
       const itemSub = i.sub_category || i.subcategory || "";
       return i.category === catId && 
-             i.city_id === selectedCity && // SYNCED: Uses city_id
+             i.city_id === selectedCity && 
              String(itemSub).toLowerCase() === String(activeSub).toLowerCase();
     });
   }, [catId, activeSub, vaultData, selectedCity]);
