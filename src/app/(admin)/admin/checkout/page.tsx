@@ -7,32 +7,28 @@ export default function AdminSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState('');
 
+  // Updated state to match the redirect requirements
   const [settings, setSettings] = useState({
-    email: 'admin@OSNOVA-archive.com',
-    bankName: '',
-    accountName: '',
-    iban: '',
-    swift: '',
-    instagram: 'OSNOVA_archive' // Standardized key
+    active_method: 'whatsapp',
+    recipient_id: ''
   });
 
   useEffect(() => {
-    const fetchVaultData = async () => {
+    const fetchProtocolData = async () => {
       const { data, error } = await supabase
-        .from('site_config')
-        .select('content')
-        .eq('section_name', 'vault_config')
+        .from('admin_settings')
+        .select('*')
+        .eq('id', 1)
         .single();
 
       if (data && !error) {
-        // Ensure that if 'instagram' is missing in old data, it defaults
         setSettings({
-          ...data.content,
-          instagram: data.content.instagram || 'OSNOVA_archive'
+          active_method: data.active_notification_method || 'whatsapp',
+          recipient_id: data.notification_recipient || ''
         });
       }
     };
-    fetchVaultData();
+    fetchProtocolData();
   }, [supabase]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -45,11 +41,13 @@ export default function AdminSettings() {
     
     try {
       const { error } = await supabase
-        .from('site_config')
+        .from('admin_settings')
         .upsert({ 
-          section_name: 'vault_config', 
-          content: settings 
-        }, { onConflict: 'section_name' });
+          id: 1,
+          active_notification_method: settings.active_method, 
+          notification_recipient: settings.recipient_id,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
 
       if (error) throw error;
 
@@ -68,11 +66,11 @@ export default function AdminSettings() {
       <header className="settings-header">
         <div className="accent-line"></div>
         <div className="header-meta">
-          <span className="serial-number">SYS-VAULT-PROTOCOL / 2026</span>
-          <span className="category-label">FINANCIAL GATEWAY & CORE CONFIG</span>
+          <span className="serial-number">SYS-REDIRECT-PROTOCOL / 2026</span>
+          <span className="category-label">PURCHASE GATEWAY & REDIRECT CONFIG</span>
         </div>
         <h1 className="luxury-title">
-          VAULT <span className="serif-italic">& Config</span>
+          GATEWAY <span className="serif-italic">& Protocol</span>
         </h1>
       </header>
 
@@ -81,85 +79,44 @@ export default function AdminSettings() {
           
           <div className="input-group full-width">
             <div className="label-wrapper">
-              <label>CONTACT EMAIL</label>
-              <span className="label-detail">PUBLIC DISPLAY ONLY</span>
+              <label>ACTIVE REDIRECT PLATFORM</label>
+              <span className="label-detail">WHATSAPP / TELEGRAM / VK</span>
             </div>
-            <input 
-              type="email" 
-              className="luxury-input" 
-              placeholder="admin@OSNOVA-archive.com"
-              value={settings.email || ''}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-            />
+            <select 
+              className="luxury-input"
+              value={settings.active_method}
+              onChange={(e) => handleInputChange('active_method', e.target.value)}
+              style={{ appearance: 'none', background: 'transparent' }}
+            >
+              <option value="whatsapp" style={{background: '#000'}}>WHATSAPP</option>
+              <option value="telegram" style={{background: '#000'}}>TELEGRAM</option>
+              <option value="vk" style={{background: '#000'}}>VKONTAKTE</option>
+            </select>
           </div>
 
           <div className="protocol-divider full-width">
             <div className="divider-line"></div>
-            <span className="divider-text">BANKING PROTOCOLS</span>
-          </div>
-
-          <div className="input-group">
-            <label>INSTITUTION NAME</label>
-            <input 
-              type="text" 
-              className="luxury-input" 
-              placeholder="CENTRAL RESERVE"
-              value={settings.bankName || ''}
-              onChange={(e) => handleInputChange('bankName', e.target.value)}
-            />
-          </div>
-
-          <div className="input-group">
-            <label>BENEFICIARY ACCOUNT</label>
-            <input 
-              type="text" 
-              className="luxury-input serif-italic" 
-              placeholder="OSNOVA ARCHIVE HOLDINGS"
-              value={settings.accountName || ''}
-              onChange={(e) => handleInputChange('accountName', e.target.value)}
-            />
-          </div>
-
-          <div className="input-group">
-            <label>IBAN / ACCOUNT NUMBER</label>
-            <input 
-              type="text" 
-              className="luxury-input monospace tracking-widest" 
-              placeholder="GB00 0000 0000..."
-              value={settings.iban || ''}
-              onChange={(e) => handleInputChange('iban', e.target.value)}
-            />
-          </div>
-
-          <div className="input-group">
-            <label>SWIFT / BIC IDENTIFIER</label>
-            <input 
-              type="text" 
-              className="luxury-input monospace" 
-              placeholder="SWIFT CODE"
-              value={settings.swift || ''}
-              onChange={(e) => handleInputChange('swift', e.target.value)}
-            />
-          </div>
-
-          <div className="protocol-divider full-width">
-            <div className="divider-line"></div>
-            <span className="divider-text">SOCIAL ARCHIVE REDIRECT</span>
+            <span className="divider-text">CONNECTION IDENTITY</span>
           </div>
 
           <div className="input-group full-width">
-            <div className="label-wrapper">
-              <label>INSTAGRAM CONCIERGE HANDLE</label>
-              <span className="label-detail">DM GATEWAY PROTOCOL</span>
-            </div>
+            <label>RECIPIENT IDENTIFIER</label>
             <input 
               type="text" 
-              className="luxury-input" 
-              placeholder="OSNOVA_archive"
-              value={settings.instagram || ''}
-              onChange={(e) => handleInputChange('instagram', e.target.value)}
+              className="luxury-input monospace tracking-widest" 
+              placeholder={settings.active_method === 'whatsapp' ? "79000000000" : "username_handle"}
+              value={settings.recipient_id || ''}
+              onChange={(e) => handleInputChange('recipient_id', e.target.value)}
             />
+            <div style={{marginTop: '20px'}}>
+               <span className="label-detail" style={{opacity: 0.5}}>
+                 {settings.active_method === 'whatsapp' && "NUMERIC ONLY // NO '+' SYMBOL"}
+                 {settings.active_method === 'telegram' && "HANDLE ONLY // NO '@' SYMBOL"}
+                 {settings.active_method === 'vk' && "USER ID OR SHORTNAME"}
+               </span>
+            </div>
           </div>
+
         </div>
 
         <div className="footer-action-row">
@@ -184,6 +141,7 @@ export default function AdminSettings() {
       </section>
 
       <style jsx>{`
+        /* EXACT ORIGINAL STYLES PRESERVED */
         .luxury-settings { padding: 80px 40px; max-width: 1300px; margin: 0 auto; color: #fff; background: #000; min-height: 100vh; }
         .settings-header { margin-bottom: 100px; }
         .accent-line { width: 80px; height: 1px; background: #d4af37; margin-bottom: 40px; }

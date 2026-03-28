@@ -16,6 +16,7 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isRedirecting, setIsRedirecting] = useState(false); // Added for redirect state
 
   const touchStart = useRef<number | null>(null);
   const touchEnd = useRef<number | null>(null);
@@ -53,6 +54,54 @@ export default function ProductPage() {
 
     fetchProduct();
   }, [prodId]);
+
+  // --- NEW REDIRECT LOGIC ---
+  const handleBuyNow = async () => {
+    if (!selectedSize) {
+      alert("Please select a dimension first.");
+      return;
+    }
+
+    setIsRedirecting(true);
+
+    try {
+      // Fetch specifically row ID 1 to match Admin settings
+      const { data: settings } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+      // FALLBACK DEFAULTS
+      const activeMethod = settings?.active_notification_method || 'whatsapp';
+      const recipient = settings?.notification_recipient || '79000000000';
+
+      const messageText = 
+        `Hello Aether! I would like to purchase:\n\n` +
+        `Product: ${product.name}\n` +
+        `Size: ${selectedSize}\n` +
+        `Price: ${product.price?.toLocaleString()} ₽`;
+
+      const encodedMessage = encodeURIComponent(messageText);
+      let url = "";
+
+      if (activeMethod === 'whatsapp') {
+        const cleanPhone = recipient.replace(/\D/g, '');
+        url = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+      } else if (activeMethod === 'telegram') {
+        url = `https://t.me/${recipient.replace('@', '')}`;
+      } else if (activeMethod === 'vk') {
+        url = `https://vk.me/${recipient}`;
+      }
+
+      if (url) window.open(url, '_blank');
+    } catch (err) {
+      console.error("Order redirection failed:", err);
+    } finally {
+      setIsRedirecting(false);
+    }
+  };
+  // --------------------------
 
   const mediaItems = product ? [product.image_url, ...(product.media || [])].filter(Boolean) : [];
   
@@ -93,149 +142,32 @@ export default function ProductPage() {
   return (
     <div className="pd-root">
       <style jsx>{`
-        .pd-root { 
-          display: flex; 
-          min-height: 100vh; 
-          background: #fff; 
-          color: #000; 
-          padding-top: 100px;
-        }
-        
-        .pd-visual { 
-          flex: 1.2; 
-          position: sticky; 
-          top: 100px;
-          background: #f9f9f9; 
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: calc(100vh - 100px);
-          overflow: hidden;
-        }
-
-        .pd-gallery-container {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          display: grid;
-          place-items: center;
-        }
-
-        .pd-gallery-item { 
-          grid-area: 1 / 1;
-          width: 100%;
-          height: 100%;
-          display: flex; 
-          align-items: center; 
-          justify-content: center;
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 0.6s ease;
-          padding: 60px;
-        }
-
-        .pd-gallery-item.active {
-          opacity: 1;
-          visibility: visible;
-          z-index: 2;
-        }
-
-        .pd-gallery-item img, .pd-gallery-item video {
-          max-width: 100%;
-          max-height: 100%;
-          object-fit: contain;
-        }
-        
-        .gallery-controls {
-          position: absolute;
-          bottom: 30px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          gap: 15px;
-          z-index: 10;
-        }
-
-        .control-dot {
-          width: 30px;
-          height: 2px;
-          background: #000;
-          opacity: 0.1;
-          cursor: pointer;
-          transition: 0.3s;
-        }
-
+        /* ... existing styles remain unchanged ... */
+        .pd-root { display: flex; min-height: 100vh; background: #fff; color: #000; padding-top: 100px; }
+        .pd-visual { flex: 1.2; position: sticky; top: 100px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; height: calc(100vh - 100px); overflow: hidden; }
+        .pd-gallery-container { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
+        .pd-gallery-item { grid-area: 1 / 1; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.6s ease; padding: 60px; }
+        .pd-gallery-item.active { opacity: 1; visibility: visible; z-index: 2; }
+        .pd-gallery-item img, .pd-gallery-item video { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .gallery-controls { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 10; }
+        .control-dot { width: 30px; height: 2px; background: #000; opacity: 0.1; cursor: pointer; transition: 0.3s; }
         .control-dot.active { opacity: 1; }
-
-        .pd-sidebar { 
-          flex: 0 0 500px; 
-          background: #fff;
-          border-left: 1px solid #eee;
-        }
-
-        .pd-sticky-wrap { 
-          padding: 60px 50px;
-          display: flex; 
-          flex-direction: column; 
-          gap: 40px; 
-        }
-        
-        .pd-back-link { 
-          background: none; border: none; font-weight: 900; font-size: 10px; 
-          letter-spacing: 2px; opacity: 0.4; transition: 0.3s; cursor: pointer;
-          text-transform: uppercase;
-        }
+        .pd-sidebar { flex: 0 0 500px; background: #fff; border-left: 1px solid #eee; }
+        .pd-sticky-wrap { padding: 60px 50px; display: flex; flex-direction: column; gap: 40px; }
+        .pd-back-link { background: none; border: none; font-weight: 900; font-size: 10px; letter-spacing: 2px; opacity: 0.4; transition: 0.3s; cursor: pointer; text-transform: uppercase; }
         .pd-back-link:hover { opacity: 1; transform: translateX(-5px); }
-
         .pd-top h1 { font-size: clamp(32px, 4vw, 48px); font-weight: 900; letter-spacing: -2px; line-height: 1.1; text-transform: uppercase; margin: 15px 0; }
         .pd-sku { font-size: 10px; color: #aaa; font-weight: 800; letter-spacing: 1.5px; }
         .pd-price { font-size: 20px; font-weight: 500; }
-
         .pd-add-btn { width: 100%; background: #000; color: #fff; border: 1px solid #000; padding: 24px; font-weight: 900; font-size: 11px; letter-spacing: 3px; cursor: pointer; transition: 0.4s; text-transform: uppercase; }
         .pd-add-btn:hover { background: #333; }
-        
         .size-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 1px; background: #eee; border: 1px solid #eee; }
         .size-btn { background: #fff; border: none; padding: 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; }
         .size-btn.active { background: #000; color: #fff; }
-
-        .skeleton-shimmer {
-          background: #f6f7f8;
-          background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
-          background-repeat: no-repeat;
-          background-size: 800px 100%;
-          animation: shimmer 1.5s infinite linear;
-        }
-
-        @keyframes shimmer {
-          0% { background-position: -468px 0; }
-          100% { background-position: 468px 0; }
-        }
-
-        /* RESPONSIVE OVERRIDES */
-        @media (max-width: 1024px) {
-          .pd-root { flex-direction: column; padding-top: 80px; }
-          .pd-visual { 
-            position: relative; 
-            top: 0; 
-            height: 65vh; /* Enough height to show product but keep sidebar visible below */
-            flex: none;
-            width: 100%;
-          }
-          .pd-sidebar { 
-            flex: none; 
-            width: 100%; 
-            border-left: none; 
-            border-top: 1px solid #eee; 
-          }
-          .pd-gallery-item { padding: 30px; }
-          .pd-sticky-wrap { padding: 40px 20px 80px 20px; }
-        }
-
-        @media (max-width: 640px) {
-          .pd-visual { height: 55vh; }
-          .pd-top h1 { font-size: 28px; }
-          .pd-add-btn { padding: 20px; }
-        }
+        .skeleton-shimmer { background: #f6f7f8; background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%); background-repeat: no-repeat; background-size: 800px 100%; animation: shimmer 1.5s infinite linear; }
+        @keyframes shimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
+        @media (max-width: 1024px) { .pd-root { flex-direction: column; padding-top: 80px; } .pd-visual { position: relative; top: 0; height: 65vh; flex: none; width: 100%; } .pd-sidebar { flex: none; width: 100%; border-left: none; border-top: 1px solid #eee; } .pd-gallery-item { padding: 30px; } .pd-sticky-wrap { padding: 40px 20px 80px 20px; } }
+        @media (max-width: 640px) { .pd-visual { height: 55vh; } .pd-top h1 { font-size: 28px; } .pd-add-btn { padding: 20px; } }
       `}</style>
 
       {/* VISUAL SECTION */}
@@ -329,15 +261,23 @@ export default function ProductPage() {
                   ADD TO ARCHIVE
                 </button>
                 <button 
+                  disabled={isRedirecting}
                   style={{
-                    width: '100%', background: '#fff', color: '#000', border: '1px solid #000', padding: '24px', fontWeight: 900, fontSize: '11px', letterSpacing: '3px', cursor: 'pointer', textTransform: 'uppercase'
+                    width: '100%', 
+                    background: '#fff', 
+                    color: '#000', 
+                    border: '1px solid #000', 
+                    padding: '24px', 
+                    fontWeight: 900, 
+                    fontSize: '11px', 
+                    letterSpacing: '3px', 
+                    cursor: 'pointer', 
+                    textTransform: 'uppercase',
+                    opacity: isRedirecting ? 0.5 : 1
                   }}
-                  onClick={() => {
-                    addToBag({ ...product, media: product.image_url, selectedSize });
-                    router.push('/checkout');
-                  }}
+                  onClick={handleBuyNow}
                 >
-                  BUY IT NOW
+                  {isRedirecting ? "Processing..." : "BUY IT NOW"}
                 </button>
               </div>
 
