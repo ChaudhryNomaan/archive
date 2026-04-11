@@ -171,7 +171,7 @@ export default function HeroAdmin() {
       </form>
 
       <style jsx>{`
-        .admin-input { width: 100%; background: #080808; border: 1px solid #111; padding: 20px; color: #fff; font-size: 13px; margin-top: 10px; outline: none; }
+        .admin-input { width: 100%; background: #A39F9F; border: 1px solid #111; padding: 20px; color: #fff; font-size: 13px; margin-top: 10px; outline: none; }
         .admin-input:focus { border-color: #d4af37; }
         .upload-btn { display: inline-block; padding: 10px 20px; border: 1px solid #333; color: #888; font-size: 9px; letter-spacing: 2px; cursor: pointer; transition: 0.3s; }
         .upload-btn:hover { border-color: #d4af37; color: #fff; }

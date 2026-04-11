@@ -133,7 +133,7 @@ export default function FooterSettings() {
         .header-meta { display: flex; justify-content: space-between; font-size: 8px; letter-spacing: 4px; color: #666; margin-bottom: 10px; font-weight: bold; }
         .luxury-title { font-size: clamp(2.5rem, 8vw, 6rem); font-weight: 200; letter-spacing: -4px; line-height: 0.9; text-transform: uppercase; margin: 0; }
         .serif-italic { font-family: serif; font-style: italic; color: #444; }
-        .settings-form-container { margin-top: 40px; background: #050505; border: 1px solid #111; padding: 40px; }
+        .settings-form-container { margin-top: 40px; background: #A39F9F; border: 1px solid #111; padding: 40px; }
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
         .input-group label { display: block; font-size: 9px; color: #555; font-weight: bold; letter-spacing: 2px; margin-bottom: 15px; text-transform: uppercase; }
         .luxury-input { background: transparent; border: none; border-bottom: 1px solid #222; color: #fff; width: 100%; padding: 12px 0; font-size: 16px; outline: none; transition: border-color 0.4s; border-radius: 0; }

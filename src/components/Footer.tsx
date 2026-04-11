@@ -6,9 +6,9 @@ export default function Footer() {
   const supabase = createClient();
   const [hasMounted, setHasMounted] = useState(false);
   
-  // Default values to show if database fetch fails or is empty
+  // Стандартні значення українською
   const [data, setData] = useState({
-    location: 'LONDON, UK',
+    location: 'ЛОНДОН, ВЕЛИКОБРИТАНІЯ',
     project: 'OSNOVA ARCHIVE © 2026',
     instagram: 'instagram.com',
     twitter: 'twitter.com'
@@ -25,20 +25,16 @@ export default function Footer() {
           .eq('section_name', 'footer')
           .single();
 
-        // If there's an error (like table doesn't exist yet), 
-        // we just log a warning and keep the default data
         if (error) {
-          console.warn("Footer sync: Table not found or empty. Using local defaults.");
+          console.warn("Footer sync: Таблицю не знайдено або вона порожня. Використовуються локальні значення.");
           return;
         }
 
         if (config && config.content) {
-          // Merge fetched data with defaults to ensure all fields exist
           setData((prev) => ({ ...prev, ...config.content }));
         }
       } catch (err) {
-        // Silencing the crash by catching the error
-        console.error("Footer sync error handled.");
+        console.error("Помилка синхронізації футера оброблена.");
       }
     };
 
@@ -49,7 +45,6 @@ export default function Footer() {
     return <footer className="site-footer" style={{ opacity: 0 }} />;
   }
 
-  // Safe URL helper
   const formatUrl = (url: string) => {
     if (!url || url === '#') return '#';
     return url.startsWith('http') ? url : `https://${url}`;
@@ -60,7 +55,6 @@ export default function Footer() {
       <style jsx>{`
         .site-footer {
           padding: 60px 40px;
-          background: #000;
           border-top: 1px solid #111;
           color: #fff;
         }
@@ -100,17 +94,17 @@ export default function Footer() {
 
       <div className="footer-container">
         <div className="footer-section">
-          <span className="footer-label">LOCATION</span>
+          <span className="footer-label">ЛОКАЦІЯ</span>
           <p>{data.location}</p>
         </div>
         
         <div className="footer-section">
-          <span className="footer-label">PROJECT</span>
+          <span className="footer-label">ПРОЄКТ</span>
           <p>{data.project}</p>
         </div>
         
         <div className="footer-section">
-          <span className="footer-label">SOCIAL</span>
+          <span className="footer-label">СОЦМЕРЕЖІ</span>
           <div className="footer-links">
             <a href={formatUrl(data.instagram)} target="_blank" rel="noopener noreferrer">
               INSTAGRAM

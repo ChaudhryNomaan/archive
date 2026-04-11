@@ -6,6 +6,17 @@ import { createClient } from '@/lib/supabase';
 
 const supabase = createClient();
 
+// Мапінг категорій для бази даних залишається незмінним, щоб не зламати логіку запитів
+const SUB_CATEGORY_MAP: Record<string, string> = {
+  "JEANS": "JEAN",
+  "PANTS": "JEAN",
+  "TSHIRTS": "T%SHIRT",
+  "SHIRTS": "SHIRT",
+  "MEN-SHOES": "SHOE",
+  "WOMEN-SHOES": "SHOE",
+  "SHORTS": "SHORT"
+};
+
 export default function CategoryPage({ params }: { params: Promise<{ catId: string }> }) {
   const resolvedParams = use(params);
   const catId = resolvedParams?.catId;  
@@ -24,15 +35,14 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
       if (!dbCategoryMatch) return;
       setLoading(true);
       try {
-        let query = supabase.from('products').select('*');
-        if (dbCategoryMatch.includes("JEAN") || dbCategoryMatch.includes("PANT")) {
-          query = query.ilike('sub_category', '%JEAN%');
-        } else if (dbCategoryMatch.includes("TSHIRT") || dbCategoryMatch.includes("T-SHIRT")) {
-          query = query.ilike('sub_category', '%T%SHIRT%');
-        } else {
-          query = query.ilike('sub_category', `%${dbCategoryMatch}%`);
-        }
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const searchTerm = SUB_CATEGORY_MAP[dbCategoryMatch] || dbCategoryMatch;
+
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .ilike('sub_category', `%${searchTerm}%`)
+          .order('created_at', { ascending: false });
+
         if (error) throw error;
         setProducts(data || []);
       } catch (err) {
@@ -45,13 +55,14 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
     fetchCategoryData();
   }, [dbCategoryMatch]);
 
+  // Відображення назви категорії (заміна дефісів на косу риску для дизайну)
   const categoryTitle = decodeURIComponent(catId || "").toUpperCase().replace('-', ' / ');
 
   return (
     <div className="cat-root min-h-screen">
       <style jsx>{`
         .cat-root {
-          padding-top: 80px; /* Adjust based on your header height */
+          padding-top: 80px; 
         }
         .cat-sidebar {
           padding: 40px 20px;
@@ -67,7 +78,7 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 1px;
-          background: #eee; /* Grid line effect */
+          background: #eee;
           border-bottom: 1px solid #eee;
         }
         .cat-card {
@@ -76,6 +87,7 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
           flex-direction: column;
           text-decoration: none;
           color: inherit;
+          position: relative;
         }
         .cc-media {
           aspect-ratio: 4 / 5;
@@ -111,24 +123,38 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
         .price-tag {
           font-size: 13px;
           margin-top: 5px;
+          font-weight: 700;
+        }
+        
+        /* Sale Specific Styles */
+        .price-tag.on-sale { color: #ff0000; }
+        .old-price { 
+          font-size: 11px; 
+          text-decoration: line-through; 
+          color: #aaa; 
+          margin-left: 8px; 
+          font-weight: 400; 
+        }
+        .sale-label { 
+          position: absolute; 
+          top: 15px; 
+          left: 15px; 
+          background: #ff0000; 
+          color: #fff; 
+          font-size: 8px; 
+          font-weight: 900; 
+          padding: 4px 10px; 
+          letter-spacing: 2px; 
+          z-index: 5;
         }
 
-        /* Responsiveness */
         @media (max-width: 1024px) {
-          .cat-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
+          .cat-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 640px) {
-          .cat-grid {
-            grid-template-columns: 1fr;
-          }
-          .cat-sidebar {
-            padding: 30px 15px;
-          }
-          .cc-info {
-            padding: 15px;
-          }
+          .cat-grid { grid-template-columns: 1fr; }
+          .cat-sidebar { padding: 30px 15px; }
+          .cc-info { padding: 15px; }
         }
       `}</style>
       
@@ -151,12 +177,16 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
           products.map((product) => {
             const hasMedia = product.image_url && product.image_url.trim() !== "";
             const isVideo = hasMedia && product.image_url.match(/\.(mp4|webm|mov)$/i);
+            const isOnSale = product.compare_at_price && Number(product.compare_at_price) > 0;
 
             return (
               <Link key={product.id} href={`/product/${product.id}`} className="cat-card stagger-in">
+                {/* Sale Tag */}
+                {isOnSale && <div className="sale-label">SALE</div>}
+                
                 <div className="cc-media">
                   {!hasMedia ? (
-                    <div className="flex items-center justify-center h-full text-[10px] tracking-widest text-gray-300 font-bold">MISSING_ASSET</div>
+                    <div className="flex items-center justify-center h-full text-[10px] tracking-widest text-gray-300 font-bold uppercase">No_Media</div>
                   ) : isVideo ? (
                     <video src={product.image_url} autoPlay loop muted playsInline />
                   ) : (
@@ -166,7 +196,15 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
                 <div className="cc-info">
                   <span className="sku">{product.sku || 'AETHER-ARCHIVE'}</span>
                   <h4>{product.name}</h4>
-                  <p className="price-tag">₽ {Number(product.price).toLocaleString()}</p>
+                  
+                  <p className={`price-tag ${isOnSale ? 'on-sale' : ''}`}>
+                    {Number(product.price).toLocaleString('uk-UA')} ₴
+                    {isOnSale && (
+                      <span className="old-price">
+                        {Number(product.compare_at_price).toLocaleString('uk-UA')} ₴
+                      </span>
+                    )}
+                  </p>
                 </div>
               </Link>
             )
@@ -176,7 +214,7 @@ export default function CategoryPage({ params }: { params: Promise<{ catId: stri
 
       {hasFetched && !loading && products.length === 0 && (
         <div className="w-full text-center py-60 text-[10px] tracking-[6px] font-black text-gray-400 uppercase px-4">
-          Archive Empty for {categoryTitle}
+          Archive is empty for {categoryTitle}
         </div>
       )}
     </div>

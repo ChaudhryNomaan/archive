@@ -196,7 +196,7 @@ export default function MenuSettingsAdmin() {
         .header-meta { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 5px; color: #555; margin-bottom: 15px; font-weight: bold; }
         .luxury-title { font-size: clamp(3rem, 10vw, 7rem); font-weight: 200; letter-spacing: -5px; line-height: 0.85; text-transform: uppercase; margin: 0; }
         .serif-italic { font-family: serif; font-style: italic; color: #666; }
-        .settings-form-container { background: #050505; border: 1px solid #111; padding: 60px; }
+        .settings-form-container { background: #A39F9F; border: 1px solid #111; padding: 60px; }
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
         .input-group label { display: block; font-size: 9px; color: #444; font-weight: bold; letter-spacing: 3px; margin-bottom: 20px; text-transform: uppercase; }
         .luxury-input { background: transparent; border: none; border-bottom: 1px solid #222; color: #fff; width: 100%; padding: 15px 0; font-size: 18px; outline: none; transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1); border-radius: 0; }

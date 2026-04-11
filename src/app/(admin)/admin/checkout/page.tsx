@@ -148,7 +148,7 @@ export default function AdminSettings() {
         .header-meta { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 6px; color: #444; margin-bottom: 20px; font-weight: bold; }
         .luxury-title { font-size: clamp(3.5rem, 12vw, 8.5rem); font-weight: 200; letter-spacing: -6px; line-height: 0.8; text-transform: uppercase; margin: 0; }
         .serif-italic { font-family: serif; font-style: italic; color: #777; }
-        .settings-form-container { background: #030303; border: 1px solid #0a0a0a; padding: 80px; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5); }
+        .settings-form-container { background: #A39F9F; border: 1px solid #2D2B2B; padding: 80px; box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5); }
         .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
         .full-width { grid-column: span 2; }
         .protocol-divider { display: flex; align-items: center; gap: 30px; margin: 20px 0; }

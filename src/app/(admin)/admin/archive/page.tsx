@@ -2,8 +2,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase';
 
-// Updated flat structure to match your new navigation
-const ARCHIVE_CATEGORIES = ["JEANS/PANTS", "T-SHIRTS", "JACKETS", "SHIRTS"];
+const ARCHIVE_CATEGORIES = ["MEN-SHOES", "WOMEN-SHOES", "SHIRTS", "SHORTS"];
+
+const PRESET_SIZES = [
+  "32", "34", "36", "38", "40", "42", "44", "46", 
+  "xs", "s", "m", "l", "xl", "xxl", "os"
+];
 
 const generateUniqueId = (name: string) => {
   const base = name.toUpperCase().trim().replace(/ /g, '').replace(/[^\w-]+/g, '').substring(0, 4);
@@ -15,8 +19,6 @@ const generateSlug = (name: string) => {
   const base = name.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '');
   return `${base}-${Math.random().toString(36).substring(2, 7)}`;
 };
-
-const PRESET_SIZES = ["xs", "s", "m", "l", "xl", "xxl", "os"];
 
 function LuxurySelect({ label, value, options, onChange }: { label: string, value: string, options: string[], onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,14 +36,14 @@ function LuxurySelect({ label, value, options, onChange }: { label: string, valu
     <div className="luxury-select-container" ref={containerRef}>
       <label className="select-label">{label}</label>
       <div className="select-trigger" onClick={() => setIsOpen(!isOpen)}>
-        <span>{value?.toUpperCase() || 'SELECT...'}</span>
+        <span>{value?.replace('-', ' ').toUpperCase() || 'SELECT...'}</span>
         <span className={`arrow ${isOpen ? 'up' : ''}`}>▼</span>
       </div>
       {isOpen && (
         <ul className="select-options">
           {options.map((opt) => (
             <li key={opt} className={opt === value ? "active" : ""} onClick={() => { onChange(opt); setIsOpen(false); }}>
-              {opt.toUpperCase()}
+              {opt.replace('-', ' ').toUpperCase()}
             </li>
           ))}
         </ul>
@@ -73,18 +75,15 @@ export default function ArchiveAdmin() {
   const supabase = createClient();
 
   const [formValues, setFormValues] = useState({
-    name: '', sku: '', price: '', size: '',
-    category: 'COLLECTION', // We default this to 'COLLECTION' for the DB query
-    subCategory: ARCHIVE_CATEGORIES[0] // User selects from our 4 main types
+    name: '', sku: '', price: '', compare_at_price: '', size: '',
+    category: 'COLLECTION', 
+    subCategory: ARCHIVE_CATEGORIES[0] 
   });
 
   const fetchVault = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       setItems(data || []);
     } catch (error) {
@@ -94,9 +93,7 @@ export default function ArchiveAdmin() {
     }
   };
 
-  useEffect(() => { 
-    fetchVault(); 
-  }, []);
+  useEffect(() => { fetchVault(); }, []);
 
   const filteredItems = useMemo(() => {
     return items.filter(item => 
@@ -111,6 +108,7 @@ export default function ArchiveAdmin() {
         name: editingItem.name || '',
         sku: editingItem.sku || '',
         price: editingItem.price?.toString() || '',
+        compare_at_price: editingItem.compare_at_price?.toString() || '',
         size: editingItem.specifications?.size || '',
         category: editingItem.category || 'COLLECTION',
         subCategory: editingItem.sub_category || ARCHIVE_CATEGORIES[0]
@@ -129,7 +127,7 @@ export default function ArchiveAdmin() {
     setSelectedFiles([]);
     setExistingMedia([]);
     setFormValues({
-      name: '', sku: '', price: '', size: '',
+      name: '', sku: '', price: '', compare_at_price: '', size: '',
       category: 'COLLECTION',
       subCategory: ARCHIVE_CATEGORIES[0]
     });
@@ -137,22 +135,10 @@ export default function ArchiveAdmin() {
 
   const toggleSize = (s: string) => {
     const currentSizes = formValues.size.split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
-    const newSizes = currentSizes.includes(s) ? currentSizes.filter(x => x !== s) : [...currentSizes, s];
+    const newSizes = currentSizes.includes(s.toLowerCase()) 
+      ? currentSizes.filter(x => x !== s.toLowerCase()) 
+      : [...currentSizes, s.toLowerCase()];
     setFormValues({ ...formValues, size: newSizes.join(', ') });
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const newEntries = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
-    setSelectedFiles(prev => [...prev, ...newEntries]);
-  };
-
-  const removeSelectedFile = (idx: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const removeExistingMedia = (url: string) => {
-    setExistingMedia(prev => prev.filter(m => m !== url));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -173,8 +159,9 @@ export default function ArchiveAdmin() {
       const basePayload = {
         name: formValues.name,
         price: parseFloat(formValues.price) || 0,
+        compare_at_price: formValues.compare_at_price ? parseFloat(formValues.compare_at_price) : null,
         category: formValues.category,
-        sub_category: formValues.subCategory, // Saved into sub_category column
+        sub_category: formValues.subCategory, 
         image_url: allMedia[0] || '',
         media: allMedia.slice(1),
         specifications: { size: formValues.size }
@@ -183,19 +170,16 @@ export default function ArchiveAdmin() {
       if (editingItem) {
         await supabase.from('products').update({ 
           ...basePayload, 
-          sku: formValues.sku || editingItem.sku,
-          city_id: null 
+          sku: formValues.sku || editingItem.sku
         }).eq('id', editingItem.id);
       } else {
         const { error } = await supabase.from('products').insert([{ 
           ...basePayload, 
           sku: formValues.sku || generateUniqueId(formValues.name),
-          city_id: null, 
           slug: generateSlug(formValues.name) 
         }]);
         if (error) throw error;
       }
-
       resetForm();
       fetchVault();
     } catch (err: any) {
@@ -207,14 +191,11 @@ export default function ArchiveAdmin() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("Confirm permanent removal from Vault?")) return;
+    if (!confirm("Confirm permanent removal?")) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) throw error;
+      await supabase.from('products').delete().eq('id', id);
       fetchVault();
-    } catch (err: any) {
-      alert(`Delete Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -237,34 +218,38 @@ export default function ArchiveAdmin() {
           <form onSubmit={handleSave} className="luxury-stack">
             
             <div className="input-group">
-              <label>IDENTIFIER</label>
-              <input className="luxury-input" placeholder="PRODUCT NAME" value={formValues.name} onChange={e => setFormValues({...formValues, name: e.target.value})} required />
+              <label>IDENTIFIER (PRODUCT NAME)</label>
+              <input className="luxury-input" placeholder="e.g. CORE RUNNER" value={formValues.name} onChange={e => setFormValues({...formValues, name: e.target.value})} required />
             </div>
 
             <div className="input-group">
               <label>SIZE GRID</label>
               <div className="size-grid">
                 {PRESET_SIZES.map(s => (
-                  <button key={s} type="button" className={`luxury-size-btn ${formValues.size.toLowerCase().includes(s) ? 'active' : ''}`} onClick={() => toggleSize(s)}>
-                    {s}
+                  <button key={s} type="button" className={`luxury-size-btn ${formValues.size.toLowerCase().includes(s.toLowerCase()) ? 'active' : ''}`} onClick={() => toggleSize(s)}>
+                    {s.toUpperCase()}
                   </button>
                 ))}
               </div>
             </div>
 
+            <div className="input-group">
+                <label>SKU (AUTO-GENERATED IF BLANK)</label>
+                <input className="luxury-input" placeholder="AETH-XXXX" value={formValues.sku} onChange={e => setFormValues({...formValues, sku: e.target.value})} />
+            </div>
+
             <div className="luxury-row">
               <div className="input-group">
-                <label>SKU (AUTO-GEN)</label>
-                <input className="luxury-input" placeholder="LEAVE BLANK" value={formValues.sku} onChange={e => setFormValues({...formValues, sku: e.target.value})} />
+                <label>SALE PRICE (₴)</label>
+                <input className="luxury-input" type="number" step="1" placeholder="CURRENT" value={formValues.price} onChange={e => setFormValues({...formValues, price: e.target.value})} required />
               </div>
               <div className="input-group">
-                <label>PRICE (€)</label>
-                <input className="luxury-input" type="number" step="0.01" value={formValues.price} onChange={e => setFormValues({...formValues, price: e.target.value})} required />
+                <label>PREVIOUS PRICE (₴)</label>
+                <input className="luxury-input" type="number" step="1" placeholder="OPTIONAL" value={formValues.compare_at_price} onChange={e => setFormValues({...formValues, compare_at_price: e.target.value})} />
               </div>
             </div>
 
             <div className="luxury-row">
-              {/* Only one selector needed now as we use the flat ARCHIVE_CATEGORIES list */}
               <LuxurySelect 
                 label="SECTOR" 
                 value={formValues.subCategory} 
@@ -275,29 +260,15 @@ export default function ArchiveAdmin() {
 
             <div className="input-group">
               <label>MEDIA ASSETS</label>
-
-              {(existingMedia.length > 0 || selectedFiles.length > 0) && (
-                <div className="media-preview-grid">
-                  {existingMedia.map((url, idx) => (
-                    <div key={`existing-${idx}`} className="preview-item">
-                      <img src={url} alt="Existing" />
-                      <button type="button" className="remove-preview" onClick={() => removeExistingMedia(url)}>×</button>
-                      <span className="preview-tag">SYNCED</span>
-                    </div>
-                  ))}
-                  {selectedFiles.map((entry, idx) => (
-                    <div key={`new-${idx}`} className="preview-item pending">
-                      <img src={entry.preview} alt="New" />
-                      <button type="button" className="remove-preview" onClick={() => removeSelectedFile(idx)}>×</button>
-                      <span className="preview-tag">NEW</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               <div className="upload-block" onClick={() => fileInputRef.current?.click()}>
                 <span>UPLOAD MEDIA +</span>
-                <input type="file" ref={fileInputRef} hidden multiple accept="image/*,video/*" onChange={handleFileChange} />
+                <input type="file" ref={fileInputRef} hidden multiple accept="image/*,video/*" onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  setSelectedFiles(prev => [...prev, ...files.map(f => ({ file: f, preview: URL.createObjectURL(f) }))]);
+                }} />
+              </div>
+              <div className="preview-strip">
+                {selectedFiles.map((f, i) => <img key={i} src={f.preview} className="mini-preview" />)}
               </div>
             </div>
 
@@ -310,37 +281,40 @@ export default function ArchiveAdmin() {
 
         <div className="inventory-container">
           <div className="inventory-controls">
-            <div className="search-node">
-              <input 
-                type="text" 
-                placeholder="SEARCH VAULT..." 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="luxury-search-input"
-              />
-              <span className="search-count">{filteredItems.length} ITEMS</span>
-            </div>
+            <input 
+              type="text" 
+              placeholder="SEARCH VAULT..." 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="luxury-search-input"
+            />
           </div>
 
           <div className="table-header-luxury">
-            <span className="col-sku">REF / SKU</span>
-            <span className="col-name">IDENTIFIER</span>
-            <span className="col-price">VALUE</span>
-            <span className="col-actions">CTRL</span>
+            <span>SKU</span>
+            <span>IDENTIFIER</span>
+            <span>PRICING</span>
+            <span>CTRL</span>
           </div>
 
           <div className="inventory-scroll">
-            {filteredItems.length === 0 && !loading && <p className="empty-msg">NO MATCHING NODES FOUND</p>}
             {filteredItems.map(item => (
               <div key={item.id} className="inventory-row-luxury" onClick={() => setEditingItem(item)}>
                 <span className="col-sku">{item.sku}</span>
                 <span className="col-name">
                   {item.name}
-                  <div className="row-sub-info">
-                    {item.sub_category}
+                  <div className="row-sub-info">{item.sub_category?.replace('-', ' ')}</div>
+                </span>
+                <span className="col-price">
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: item.compare_at_price ? '#ff4d4d' : '#fff' }}>₴{item.price}</span>
+                    {item.compare_at_price && (
+                      <span style={{ fontSize: '7px', textDecoration: 'line-through', color: '#444' }}>
+                        ₴{item.compare_at_price}
+                      </span>
+                    )}
                   </div>
                 </span>
-                <span className="col-price">€{item.price}</span>
                 <span className="col-actions">
                   <button className="delete-btn" onClick={(e) => handleDelete(e, item.id)}>DEL</button>
                 </span>
@@ -351,50 +325,36 @@ export default function ArchiveAdmin() {
       </div>
 
       <style jsx>{`
-        /* Styles remain identical to your original code */
-        .luxury-archive { padding: 40px; max-width: 100%; margin: 0 auto; color: #fff; background: #000; min-height: 100vh; font-family: -apple-system, sans-serif; overflow-x: hidden; }
-        .luxury-header { margin-bottom: 60px; }
-        .accent-line { width: 40px; height: 1px; background: #d4af37; margin-bottom: 20px; }
-        .header-meta { display: flex; justify-content: space-between; font-size: 8px; letter-spacing: 4px; color: #666; text-transform: uppercase; }
-        .luxury-title { font-size: 5rem; font-weight: 200; letter-spacing: -2px; line-height: 0.9; text-transform: uppercase; margin: 0; }
+        .luxury-archive { padding: 40px; background: #000; min-height: 100vh; color: #fff; }
+        .luxury-header { margin-bottom: 40px; }
+        .accent-line { width: 30px; height: 1px; background: #d4af37; margin-bottom: 15px; }
+        .header-meta { display: flex; justify-content: space-between; font-size: 8px; color: #444; letter-spacing: 2px; }
+        .luxury-title { font-size: 4rem; font-weight: 200; margin: 0; text-transform: uppercase; }
         .serif-italic { font-family: serif; font-style: italic; color: #444; }
-        .admin-split-layout { display: grid; grid-template-columns: 380px 1fr; gap: 60px; align-items: start; width: 100%; }
-        .inventory-controls { margin-bottom: 30px; }
-        .search-node { position: relative; display: flex; align-items: center; background: #050505; border: 1px solid #111; padding: 10px 20px; }
-        .luxury-search-input { background: none; border: none; color: #fff; font-size: 10px; letter-spacing: 2px; flex: 1; outline: none; text-transform: uppercase; }
-        .search-count { font-size: 8px; color: #444; letter-spacing: 1px; }
-        .inventory-container { overflow: hidden; }
-        .table-header-luxury, .inventory-row-luxury { display: grid; grid-template-columns: 160px 1fr 100px 70px; gap: 20px; align-items: center; border-bottom: 1px solid #111; }
-        .table-header-luxury { font-size: 8px; letter-spacing: 2px; color: #444; padding-bottom: 15px; text-transform: uppercase; }
-        .inventory-row-luxury { padding: 25px 0; cursor: pointer; transition: 0.2s; }
+        .admin-split-layout { display: grid; grid-template-columns: 350px 1fr; gap: 50px; }
+        .luxury-form-container { background: #111; padding: 25px; border: 1px solid #222; position: sticky; top: 20px; }
+        .card-subtitle { font-size: 9px; color: #d4af37; letter-spacing: 3px; margin-bottom: 25px; }
+        .luxury-stack { display: flex; flex-direction: column; gap: 20px; }
+        .luxury-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-group label { display: block; font-size: 8px; color: #444; margin-bottom: 8px; letter-spacing: 1px; }
+        .luxury-input { background: none; border: none; border-bottom: 1px solid #222; color: #fff; width: 100%; padding: 8px 0; outline: none; font-size: 12px; }
+        .size-grid { display: flex; gap: 4px; flex-wrap: wrap; }
+        .luxury-size-btn { background: none; border: 1px solid #222; color: #444; padding: 5px 8px; font-size: 9px; cursor: pointer; transition: 0.2s; }
+        .luxury-size-btn.active { border-color: #d4af37; color: #fff; background: #1a1a1a; }
+        .luxury-submit-btn { background: #fff; color: #000; border: none; padding: 15px; font-weight: 900; cursor: pointer; margin-top: 10px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+        .luxury-search-input { background: #050505; border: 1px solid #111; padding: 12px; color: #fff; width: 100%; margin-bottom: 20px; font-size: 10px; }
+        .table-header-luxury, .inventory-row-luxury { display: grid; grid-template-columns: 140px 1fr 100px 60px; padding: 15px 0; border-bottom: 1px solid #111; font-size: 9px; }
+        .table-header-luxury { color: #444; text-transform: uppercase; letter-spacing: 1px; }
+        .inventory-row-luxury { cursor: pointer; transition: background 0.2s; }
         .inventory-row-luxury:hover { background: #050505; }
-        .col-sku { color: #d4af37; font-size: 8px; font-weight: 800; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .col-name { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-        .row-sub-info { font-weight: 400; color: #444; font-size: 8px; margin-top: 6px; }
-        .col-price { font-size: 11px; text-align: right; }
-        .luxury-form-container { background: #050505; border: 1px solid #111; padding: 30px; position: sticky; top: 40px; }
-        .card-subtitle { font-size: 9px; letter-spacing: 5px; color: #d4af37; margin-bottom: 30px; text-transform: uppercase; }
-        .luxury-stack { display: flex; flex-direction: column; gap: 25px; }
-        .luxury-input { background: transparent; border: none; border-bottom: 1px solid #222; color: #fff; width: 100%; padding: 10px 0; font-size: 13px; outline: none; }
-        .luxury-submit-btn { background: #fff; color: #000; border: none; padding: 20px; font-size: 10px; font-weight: 900; letter-spacing: 3px; cursor: pointer; transition: 0.3s; }
-        .luxury-submit-btn:hover { background: #d4af37; }
-        .delete-btn { background: none; border: 1px solid #222; color: #444; font-size: 8px; padding: 6px 10px; cursor: pointer; transition: 0.2s; letter-spacing: 1px; }
-        .delete-btn:hover { border-color: #ff4444; color: #ff4444; }
-        .inventory-scroll { max-height: 65vh; overflow-y: auto; padding-right: 5px; }
-        .inventory-scroll::-webkit-scrollbar { width: 2px; }
-        .inventory-scroll::-webkit-scrollbar-thumb { background: #111; }
-        .size-grid { display: flex; gap: 5px; flex-wrap: wrap; }
-        .luxury-size-btn { background: none; border: 1px solid #222; color: #444; padding: 6px 10px; font-size: 9px; cursor: pointer; }
-        .luxury-size-btn.active { border-color: #d4af37; color: #fff; }
+        .col-sku { color: #d4af37; font-family: monospace; }
+        .row-sub-info { color: #444; margin-top: 4px; font-size: 7px; text-transform: uppercase; }
+        .delete-btn { background: none; border: 1px solid #333; color: #444; font-size: 7px; padding: 4px; cursor: pointer; }
+        .delete-btn:hover { border-color: #ff4d4d; color: #ff4d4d; }
         .upload-block { border: 1px dashed #222; padding: 20px; text-align: center; color: #444; font-size: 9px; cursor: pointer; }
-        .cancel-btn { background: none; border: none; color: #444; font-size: 8px; margin-top: 10px; cursor: pointer; text-transform: uppercase; }
-        .empty-msg { font-size: 8px; letter-spacing: 2px; color: #333; text-align: center; margin-top: 40px; }
-        .media-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
-        .preview-item { position: relative; aspect-ratio: 1; background: #111; border: 1px solid #222; overflow: hidden; }
-        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
-        .preview-item.pending img { opacity: 0.5; }
-        .remove-preview { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.7); color: white; border: none; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; z-index: 5; }
-        .preview-tag { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); font-size: 6px; letter-spacing: 1px; padding: 4px; text-align: center; color: #d4af37; }
+        .preview-strip { display: flex; gap: 5px; margin-top: 10px; overflow-x: auto; }
+        .mini-preview { width: 40px; height: 40px; object-fit: cover; border: 1px solid #222; }
+        .cancel-btn { background: none; border: none; color: #444; font-size: 8px; cursor: pointer; text-decoration: underline; margin-top: 5px; }
       `}</style>
     </div>
   );

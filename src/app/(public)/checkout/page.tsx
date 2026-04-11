@@ -39,17 +39,17 @@ export default function CheckoutPage() {
 
         if (data && !error) {
           setBankInfo({
-            bankName: data.content.bankName || '[ AWAITING_PROTOCOL ]',
-            accountName: data.content.accountName || '[ AWAITING_PROTOCOL ]',
-            iban: data.content.iban || '[ AWAITING_PROTOCOL ]',
-            swift: data.content.swift || '[ AWAITING_PROTOCOL ]',
+            bankName: data.content.bankName || '[ ОЧІКУВАННЯ ПРОТОКОЛУ ]',
+            accountName: data.content.accountName || '[ ОЧІКУВАННЯ ПРОТОКОЛУ ]',
+            iban: data.content.iban || '[ ОЧІКУВАННЯ ПРОТОКОЛУ ]',
+            swift: data.content.swift || '[ ОЧІКУВАННЯ ПРОТОКОЛУ ]',
             adminEmail: data.content.email || 'admin@OSNOVA-archive.com',
             instagramHandle: data.content.instagram || 'OSNOVA_archive',
             reference: `OSNOVA_ARC_${Math.floor(1000 + Math.random() * 9000)}`
           });
         }
       } catch (err) {
-        console.error("Vault Access Error:", err);
+        console.error("Помилка доступу до сховища:", err);
       }
     };
 
@@ -74,34 +74,30 @@ export default function CheckoutPage() {
     
     setIsProcessing(true);
 
-    // 1. Construct the Order Summary for Clipboard
     const itemSummary = bag.map((item: any) => 
       `- ${item.name.toUpperCase()} (${item.selectedSize || "N/A"})`
     ).join('\n');
 
     const orderSummary = `
-NEW ARCHIVE REQUEST
+НОВИЙ ЗАПИТ АРХІВУ
 --------------------
 REF: ${bankInfo.reference}
-TOTAL: €${bagTotal.toFixed(2)}
+СУМА: ${bagTotal.toLocaleString('uk-UA')} ₴
 
-ITEMS:
+ТОВАРИ:
 ${itemSummary}
 
-*Receipt Attached*
+*Квитанція додана*
     `.trim();
 
+  // (Логіка копіювання залишається без змін)
     try {
-      // 2. Copy details to clipboard
       await navigator.clipboard.writeText(orderSummary);
-      
-      // 3. UI Transition
       setOrderComplete(true);
       clearBag();
-      
-      alert("ORDER DETAILS COPIED. PLEASE PASTE IN DM.");
+      alert("ДЕТАЛІ ЗАМОВЛЕННЯ СКОПІЙОВАНО. БУДЬ ЛАСКА, ВСТАВТЕ ЇХ У ПОВІДОМЛЕННЯ (DM).");
     } catch (error) {
-      console.error("Clipboard failed:", error);
+      console.error("Помилка буфера обміну:", error);
       setOrderComplete(true);
       clearBag();
     } finally {
@@ -113,15 +109,15 @@ ${itemSummary}
     return (
       <div className="checkout-container">
         <div className="stagger-in" style={{ textAlign: 'center', marginTop: '10vh', maxWidth: '500px', margin: '10vh auto' }}>
-            <h1 className="terminal-header">GATEWAY // OPEN</h1>
+            <h1 className="terminal-header">ШЛЮЗ // ВІДКРИТО</h1>
             
             <div className="bank-details-box" style={{ textAlign: 'left', marginBottom: '40px' }}>
               <p style={{ fontSize: '9px', color: '#555', letterSpacing: '2px', lineHeight: '1.8', marginBottom: '20px' }}>
-                TRANSACTION INITIALIZED. ORDER DETAILS ARE COPIED TO YOUR CLIPBOARD. SEND THEM ALONG WITH YOUR RECEIPT TO OUR CONCIERGE.
+                ТРАНЗАКЦІЮ ІНІЦІЙОВАНО. ДЕТАЛІ ЗАМОВЛЕННЯ СКОПІЙОВАНІ В БУФЕР ОБМІНУ. НАДІШЛІТЬ ЇХ РАЗОМ ІЗ КВИТАНЦІЄЮ НАШОМУ КОНСЬЄРЖУ.
               </p>
               
               <div style={{ border: '1px solid #222', padding: '20px', textAlign: 'center' }}>
-                <span style={{ display: 'block', fontSize: '8px', color: '#444', marginBottom: '8px' }}>ORDER REFERENCE</span>
+                <span style={{ display: 'block', fontSize: '8px', color: '#444', marginBottom: '8px' }}>НОМЕР ЗАМОВЛЕННЯ (REF)</span>
                 <span style={{ fontSize: '14px', letterSpacing: '4px', color: '#fff' }}>{bankInfo.reference}</span>
               </div>
             </div>
@@ -133,11 +129,11 @@ ${itemSummary}
               className="confirm-btn" 
               style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}
             >
-              INITIALIZE DM PROTOCOL
+              ІНІЦІЮВАТИ ПРОТОКОЛ DM
             </a>
 
             <Link href="/" style={{ display: 'block', marginTop: '40px', fontSize: '8px', color: '#333', textDecoration: 'none', letterSpacing: '2px' }}>
-                RETURN TO VAULT
+                ПОВЕРНУТИСЯ ДО СХОВИЩА
             </Link>
         </div>
       </div>
@@ -146,35 +142,35 @@ ${itemSummary}
 
   return (
     <div className="checkout-container" ref={formRef}>
-      <h1 className="terminal-header">TRANSACTION // TERMINAL</h1>
+      <h1 className="terminal-header">ТРАНЗАКЦІЙНИЙ // ТЕРМІНАЛ</h1>
 
       <div className="checkout-grid">
         <div className="shipping-section stagger-in">
-          <span className="section-title">01 // SHIPPING & VERIFICATION</span>
+          <span className="section-title">01 // ДОСТАВКА ТА ВЕРИФІКАЦІЯ</span>
           
-          <input className="checkout-input" placeholder="FULL NAME" required />
-          <input className="checkout-input" placeholder="EMAIL ADDRESS" type="email" required />
-          <input className="checkout-input" placeholder="STREET ADDRESS" required />
+          <input className="checkout-input" placeholder="ПОВНЕ ІМ'Я" required />
+          <input className="checkout-input" placeholder="ЕЛЕКТРОННА ПОШТА" type="email" required />
+          <input className="checkout-input" placeholder="АДРЕСА (ВУЛИЦЯ, БУДИНОК)" required />
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '60px' }}>
-            <input className="checkout-input" placeholder="CITY" required />
-            <input className="checkout-input" placeholder="POSTAL CODE" required />
+            <input className="checkout-input" placeholder="МІСТО" required />
+            <input className="checkout-input" placeholder="ПОШТОВИЙ ІНДЕКС" required />
           </div>
 
-          <span className="section-title">02 // TRANSFER GATEWAY</span>
+          <span className="section-title">02 // ШЛЮЗ ПЕРЕКАЗУ</span>
           <div className="bank-details-box">
-            <div className="bank-row"><span>BANK NAME</span> <span>{bankInfo.bankName}</span></div>
-            <div className="bank-row"><span>ACCOUNT NAME</span> <span>{bankInfo.accountName}</span></div>
-            <div className="bank-row"><span>IBAN / ACCOUNT</span> <span>{bankInfo.iban}</span></div>
+            <div className="bank-row"><span>БАНК</span> <span>{bankInfo.bankName}</span></div>
+            <div className="bank-row"><span>ОТРИМУВАЧ</span> <span>{bankInfo.accountName}</span></div>
+            <div className="bank-row"><span>IBAN / РАХУНОК</span> <span>{bankInfo.iban}</span></div>
             <div className="bank-row"><span>SWIFT / BIC</span> <span>{bankInfo.swift}</span></div>
             <div className="bank-row" style={{ border: 'none', marginTop: '10px' }}>
-                <span style={{ color: '#888' }}>REFERENCE</span> 
+                <span style={{ color: '#888' }}>ПРИЗНАЧЕННЯ (REF)</span> 
                 <span style={{ color: '#fff' }}>{bankInfo.reference}</span>
             </div>
           </div>
 
           <div className="receipt-upload-container" style={{ marginTop: '60px' }}>
-            <span className="section-title" style={{ marginBottom: '15px' }}>03 // UPLOAD PROOF</span>
+            <span className="section-title" style={{ marginBottom: '15px' }}>03 // ЗАВАНТАЖЕННЯ ПІДТВЕРДЖЕННЯ</span>
             
             <label className="upload-dropzone">
               <input type="file" accept="image/*,.pdf" onChange={handleFileChange} style={{ display: 'none' }} />
@@ -183,7 +179,7 @@ ${itemSummary}
                   <img src={previewUrl} alt="Receipt Preview" className="receipt-preview-img" />
                 ) : (
                   <div className="upload-placeholder">
-                    {receiptFile ? receiptFile.name.toUpperCase() : "[ SELECT RECEIPT FROM DEVICE ]"}
+                    {receiptFile ? receiptFile.name.toUpperCase() : "[ ОБЕРІТЬ КВИТАНЦІЮ З ПРИСТРОЮ ]"}
                   </div>
                 )}
               </div>
@@ -192,7 +188,7 @@ ${itemSummary}
         </div>
 
         <div className="receipt-section stagger-in" style={{ animationDelay: '0.2s' }}>
-          <span className="section-title">SUMMARY</span>
+          <span className="section-title">ПІДСУМОК</span>
           
           <div className="receipt-box">
             <div className="receipt-items-list">
@@ -201,22 +197,22 @@ ${itemSummary}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '11px' }}>{item.name?.toUpperCase()}</span>
                     <span style={{ fontSize: '8px', color: '#555', letterSpacing: '1px' }}>
-                      SIZE: {item.selectedSize || "N/A"}
+                      РОЗМІР: {item.selectedSize || "N/A"}
                     </span>
                   </div>
-                  <span>€{parseFloat(item.price).toFixed(2)}</span>
+                  <span>{parseFloat(item.price).toLocaleString('uk-UA')} ₴</span>
                 </div>
               ))}
             </div>
 
             <div className="receipt-row" style={{ color: '#444', marginTop: '20px' }}>
-              <span>SHIPPING</span>
-              <span>COMPLIMENTARY</span>
+              <span>ДОСТАВКА</span>
+              <span>БЕЗКОШТОВНО</span>
             </div>
 
             <div className="total-row-highlight">
-              <span>TOTAL PAYABLE</span>
-              <span>€{bagTotal.toFixed(2)}</span>
+              <span>ДО СПЛАТИ</span>
+              <span>{bagTotal.toLocaleString('uk-UA')} ₴</span>
             </div>
 
             <button 
@@ -225,12 +221,12 @@ ${itemSummary}
               disabled={!receiptFile || isProcessing}
               style={{ opacity: !receiptFile || isProcessing ? 0.2 : 1 }}
             >
-              {isProcessing ? 'ENCRYPTING...' : receiptFile ? 'CONFIRM ORDER' : 'AWAITING RECEIPT'}
+              {isProcessing ? 'ШИФРУВАННЯ...' : receiptFile ? 'ПІДТВЕРДИТИ ЗАМОВЛЕННЯ' : 'ОЧІКУВАННЯ КВИТАНЦІЇ'}
             </button>
             
             {!receiptFile && (
               <p style={{ fontSize: '8px', color: '#ff3b3b', marginTop: '15px', textAlign: 'center', letterSpacing: '1px' }}>
-                * PAYMENT PROOF REQUIRED TO INITIALIZE SHIPMENT
+                * ДЛЯ ІНІЦІАЛІЗАЦІЇ ВІДПРАВЛЕННЯ ПОТРІБНЕ ПІДТВЕРДЖЕННЯ ОПЛАТИ
               </p>
             )}
           </div>
@@ -238,6 +234,7 @@ ${itemSummary}
       </div>
 
       <style jsx>{`
+        /* Стилі залишаються без змін, оскільки вони відповідають за візуал */
         .checkout-container { max-width: 1200px; margin: 0 auto; padding: 60px 20px; color: #fff; font-family: monospace; }
         .terminal-header { font-size: clamp(24px, 4vw, 40px); font-weight: 300; letter-spacing: -1px; margin-bottom: 60px; text-align: center; }
         .section-title { font-size: 9px; letter-spacing: 4px; color: #444; display: block; margin-bottom: 40px; }

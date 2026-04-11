@@ -16,7 +16,16 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isRedirecting, setIsRedirecting] = useState(false); // Added for redirect state
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // New states for User Info
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [userInfo, setUserInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
 
   const touchStart = useRef<number | null>(null);
   const touchEnd = useRef<number | null>(null);
@@ -45,7 +54,7 @@ export default function ProductPage() {
           setProduct(null);
         }
       } catch (error: any) {
-        console.error("Supabase fetch error:", error.message || error);
+        console.error("Помилка завантаження Supabase:", error.message || error);
         setProduct(null);
       } finally {
         setLoading(false);
@@ -55,32 +64,41 @@ export default function ProductPage() {
     fetchProduct();
   }, [prodId]);
 
-  // --- NEW REDIRECT LOGIC ---
-  const handleBuyNow = async () => {
+  const handleBuyNowClick = () => {
     if (!selectedSize) {
-      alert("Please select a dimension first.");
+      alert("Будь ласка, спочатку оберіть розмір.");
       return;
     }
+    setShowCheckoutModal(true);
+  };
 
+  const handleFinalOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsRedirecting(true);
 
     try {
-      // Fetch specifically row ID 1 to match Admin settings
       const { data: settings } = await supabase
         .from('admin_settings')
         .select('*')
         .eq('id', 1)
         .single();
 
-      // FALLBACK DEFAULTS
       const activeMethod = settings?.active_notification_method || 'whatsapp';
-      const recipient = settings?.notification_recipient || '79000000000';
+      const recipient = settings?.notification_recipient || '380000000000';
 
+      // Included image_url in the message template
       const messageText = 
-        `Hello Aether! I would like to purchase:\n\n` +
-        `Product: ${product.name}\n` +
-        `Size: ${selectedSize}\n` +
-        `Price: ${product.price?.toLocaleString()} ₽`;
+        `НОВЕ ЗАМОВЛЕННЯ // OSNOVA\n\n` +
+        `ДАНІ КЛІЄНТA:\n` +
+        `Ім'я: ${userInfo.name}\n` +
+        `Email: ${userInfo.email}\n` +
+        `Тел: ${userInfo.phone}\n` +
+        `Адреса: ${userInfo.address}\n\n` +
+        `ТОВАР:\n` +
+        `Назва: ${product.name}\n` +
+        `Розмір: ${selectedSize}\n` +
+        `Ціна: ${product.price?.toLocaleString()} ₴\n` +
+        `Посилання: ${product.image_url}`;
 
       const encodedMessage = encodeURIComponent(messageText);
       let url = "";
@@ -90,18 +108,16 @@ export default function ProductPage() {
         url = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
       } else if (activeMethod === 'telegram') {
         url = `https://t.me/${recipient.replace('@', '')}`;
-      } else if (activeMethod === 'vk') {
-        url = `https://vk.me/${recipient}`;
       }
 
       if (url) window.open(url, '_blank');
+      setShowCheckoutModal(false);
     } catch (err) {
-      console.error("Order redirection failed:", err);
+      console.error("Помилка перенаправлення замовлення:", err);
     } finally {
       setIsRedirecting(false);
     }
   };
-  // --------------------------
 
   const mediaItems = product ? [product.image_url, ...(product.media || [])].filter(Boolean) : [];
   
@@ -142,7 +158,6 @@ export default function ProductPage() {
   return (
     <div className="pd-root">
       <style jsx>{`
-        /* ... existing styles remain unchanged ... */
         .pd-root { display: flex; min-height: 100vh; background: #fff; color: #000; padding-top: 100px; }
         .pd-visual { flex: 1.2; position: sticky; top: 100px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; height: calc(100vh - 100px); overflow: hidden; }
         .pd-gallery-container { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
@@ -166,11 +181,84 @@ export default function ProductPage() {
         .size-btn.active { background: #000; color: #fff; }
         .skeleton-shimmer { background: #f6f7f8; background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%); background-repeat: no-repeat; background-size: 800px 100%; animation: shimmer 1.5s infinite linear; }
         @keyframes shimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
+        
+        /* Modal Styles */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: #fff; width: 100%; max-width: 450px; padding: 40px; position: relative; }
+        .modal-title { font-weight: 900; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .checkout-input { 
+          width: 100%; 
+          border: none; 
+          border-bottom: 1px solid #ddd; 
+          padding: 15px 0; 
+          font-size: 11px; 
+          letter-spacing: 1px; 
+          margin-bottom: 20px; 
+          outline: none; 
+          text-transform: uppercase; 
+          font-weight: 700;
+          color: #000; /* Force text to be black */
+          background: transparent;
+        }
+        .checkout-input:focus { border-bottom-color: #000; }
+        .close-modal { position: absolute; top: 20px; right: 20px; border: none; background: none; font-weight: 900; cursor: pointer; font-size: 12px; }
+
         @media (max-width: 1024px) { .pd-root { flex-direction: column; padding-top: 80px; } .pd-visual { position: relative; top: 0; height: 65vh; flex: none; width: 100%; } .pd-sidebar { flex: none; width: 100%; border-left: none; border-top: 1px solid #eee; } .pd-gallery-item { padding: 30px; } .pd-sticky-wrap { padding: 40px 20px 80px 20px; } }
-        @media (max-width: 640px) { .pd-visual { height: 55vh; } .pd-top h1 { font-size: 28px; } .pd-add-btn { padding: 20px; } }
+        @media (max-width: 640px) { .pd-visual { height: 55vh; } .pd-top h1 { font-size: 28px; } .pd-add-btn { padding: 20px; } .modal-content { padding: 30px 20px; } }
       `}</style>
 
-      {/* VISUAL SECTION */}
+      {/* CHECKOUT MODAL */}
+      {showCheckoutModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <button className="close-modal" onClick={() => setShowCheckoutModal(false)}>✕ CLOSE</button>
+            <h2 className="modal-title">Контактна інформація</h2>
+            <form onSubmit={handleFinalOrder}>
+              <input 
+                className="checkout-input" 
+                placeholder="ПОВНЕ ІМ'Я" 
+                required 
+                value={userInfo.name}
+                onChange={(e) => setUserInfo({...userInfo, name: e.target.value})}
+              />
+              <input 
+                className="checkout-input" 
+                placeholder="ЕЛЕКТРОННА ПОШТА" 
+                type="email" 
+                required 
+                value={userInfo.email}
+                onChange={(e) => setUserInfo({...userInfo, email: e.target.value})}
+              />
+              <input 
+                className="checkout-input" 
+                placeholder="НОМЕР ТЕЛЕФОНУ" 
+                type="tel" 
+                required 
+                value={userInfo.phone}
+                onChange={(e) => setUserInfo({...userInfo, phone: e.target.value})}
+              />
+              <input 
+                className="checkout-input" 
+                placeholder="АДРЕСА ДОСТАВКИ (МІСТО, ВІДДІЛЕННЯ)" 
+                required 
+                value={userInfo.address}
+                onChange={(e) => setUserInfo({...userInfo, address: e.target.value})}
+              />
+              
+              <button 
+                type="submit" 
+                className="pd-add-btn" 
+                style={{ marginTop: '20px' }}
+                disabled={isRedirecting}
+              >
+                {isRedirecting ? "ОБРОБКА..." : "ПЕРЕЙТИ ДО ОПЛАТИ"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ВІЗУАЛЬНА СЕКЦІЯ */}
       <div 
         className="pd-visual" 
         onClick={() => { if (!touchEnd.current) nextImage(); }}
@@ -213,14 +301,14 @@ export default function ProductPage() {
             )}
           </>
         ) : (
-          <p className="pd-sku" style={{ color: '#000', fontWeight: 900 }}>404 // NOT FOUND</p>
+          <p className="pd-sku" style={{ color: '#000', fontWeight: 900 }}>404 // НЕ ЗНАЙДЕНО</p>
         )}
       </div>
 
-      {/* SIDEBAR SECTION */}
+      {/* СЕКЦІЯ САЙДБАРУ */}
       <div className="pd-sidebar">
         <div className="pd-sticky-wrap">
-          <button className="pd-back-link" onClick={() => router.back()}>← BACK TO ARCHIVE</button>
+          <button className="pd-back-link" onClick={() => router.back()}>← НАЗАД ДО АРХІВУ</button>
           
           {loading ? (
             <div className="flex flex-col gap-8">
@@ -231,14 +319,14 @@ export default function ProductPage() {
           ) : product ? (
             <>
               <div className="pd-top">
-                <span className="pd-sku">SKU: {product.sku || 'AETHER-ARCHIVE'}</span>
+                <span className="pd-sku">АРТИКУЛ: {product.sku || 'OSNOVA-ARCHIVE'}</span>
                 <h1>{product.name}</h1>
-                <p className="pd-price">{product.currency || '₽'}{product.price?.toLocaleString()}</p>
+                <p className="pd-price">{product.currency || '₴'}{product.price?.toLocaleString()}</p>
               </div>
 
               {availableSizes.length > 0 && (
                 <div className="size-block">
-                  <span style={{fontSize: '9px', fontWeight: 900, color: '#bbb', letterSpacing: '1.5px', marginBottom: '15px', display: 'block', textTransform: 'uppercase'}}>Dimensions</span>
+                  <span style={{fontSize: '9px', fontWeight: 900, color: '#bbb', letterSpacing: '1.5px', marginBottom: '15px', display: 'block', textTransform: 'uppercase'}}>Розміри</span>
                   <div className="size-grid">
                     {availableSizes.map((s: string) => (
                       <button 
@@ -258,7 +346,7 @@ export default function ProductPage() {
                   className="pd-add-btn" 
                   onClick={() => addToBag({ ...product, media: product.image_url, selectedSize })}
                 >
-                  ADD TO ARCHIVE
+                  ДОДАТИ В АРХІВ
                 </button>
                 <button 
                   disabled={isRedirecting}
@@ -275,23 +363,23 @@ export default function ProductPage() {
                     textTransform: 'uppercase',
                     opacity: isRedirecting ? 0.5 : 1
                   }}
-                  onClick={handleBuyNow}
+                  onClick={handleBuyNowClick}
                 >
-                  {isRedirecting ? "Processing..." : "BUY IT NOW"}
+                  {isRedirecting ? "Обробка..." : "КУПИТИ ЗАРАЗ"}
                 </button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1px', background: '#eee', border: '1px solid #eee' }}>
                 <div style={{ background: '#fff', padding: '25px' }}>
-                  <span style={{ fontSize: '9px', fontWeight: 900, color: '#bbb', letterSpacing: '1.5px', display: 'block', textTransform: 'uppercase' }}>Availability</span>
-                  <span style={{ fontSize: '11px', fontWeight: 800 }}>{product.availability || "IN STOCK"}</span>
+                  <span style={{ fontSize: '9px', fontWeight: 900, color: '#bbb', letterSpacing: '1.5px', display: 'block', textTransform: 'uppercase' }}>Наявність</span>
+                  <span style={{ fontSize: '11px', fontWeight: 800 }}>{product.availability || "В НАЯВНОСТІ"}</span>
                 </div>
               </div>
             </>
           ) : (
             <div className="flex flex-col gap-4">
-                <p className="pd-sku" style={{ color: '#000', fontWeight: 900 }}>404 // PRODUCT NOT FOUND</p>
-                <button onClick={() => router.push('/')} className="text-[10px] tracking-[2px] border-b border-black uppercase font-bold w-fit">Return to Archive</button>
+                <p className="pd-sku" style={{ color: '#000', fontWeight: 900 }}>404 // ТОВАР НЕ ЗНАЙДЕНО</p>
+                <button onClick={() => router.push('/')} className="text-[10px] tracking-[2px] border-b border-black uppercase font-bold w-fit">Повернутися до архіву</button>
             </div>
           )}
         </div>

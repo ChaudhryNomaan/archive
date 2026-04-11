@@ -36,6 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   const navItems = [
+    { label: "SALES", path: "/admin/sales" },
     { label: "HERO & LANDING", path: "/admin" }, 
     { label: "IDENTITY", path: "/admin/identity" },
     { label: "ARCHIVE / VAULT", path: "/admin/archive" },

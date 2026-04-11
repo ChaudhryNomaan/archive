@@ -5,8 +5,13 @@ import Link from 'next/link';
 import { useOSNOVA } from '../context/OSNOVAContext';
 import { createClient } from '@/lib/supabase';
 
-// These labels match your logic
-const NAV_SECTORS = ["JEANS/PANTS", "T-SHIRTS", "JACKETS", "SHIRTS"];
+// Назви секторів для відображення (перекладені) та їхні параметри для URL
+const NAV_SECTORS = [
+  { label: "ЧОЛОВІЧЕ ВЗУТТЯ", param: "men-shoes" },
+  { label: "ЖІНОЧЕ ВЗУТТЯ", param: "women-shoes" },
+  { label: "СОРОЧКИ", param: "shirts" },
+  { label: "ШОРТИ", param: "shorts" }
+];
 
 export default function Nav() {
   const supabase = createClient();
@@ -19,8 +24,8 @@ export default function Nav() {
   
   const [scrollProgress, setScrollProgress] = useState(0);
   const [branding, setBranding] = useState({
-    logoText: '',
-    bagLabel: 'BAG'
+    logoText: 'OSNOVA', 
+    bagLabel: 'КОШИК' // Стандартне значення українською
   });
 
   useEffect(() => {
@@ -37,11 +42,12 @@ export default function Nav() {
         if (data?.content) {
           setBranding({
             logoText: data.content.logoText || 'OSNOVA',
-            bagLabel: data.content.bagLabel || 'BAG'
+            // Якщо в БД мітка "BAG", замінюємо на "КОШИК" або використовуємо значення з БД
+            bagLabel: data.content.bagLabel === 'BAG' ? 'КОШИК' : (data.content.bagLabel || 'КОШИК')
           });
         }
       } catch (err) {
-        console.warn("Branding sync skipped, using defaults:", err);
+        console.warn("Помилка синхронізації брендингу, використовуємо стандартні значення:", err);
       }
     };
 
@@ -53,7 +59,7 @@ export default function Nav() {
       setScrollProgress((currentScroll / (totalScroll || 1)) * 100);
     };
     
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
@@ -65,7 +71,7 @@ export default function Nav() {
         <div className="nav-left">
           <button 
             className="menu-trigger" 
-            aria-label="Toggle Menu" 
+            aria-label="Відкрити меню" 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <div className={`bar ${isMenuOpen ? 'open' : ''}`} />
@@ -73,20 +79,15 @@ export default function Nav() {
           </button>
           
           <div className="desktop-links">
-            {NAV_SECTORS.map(sector => {
-              // Transform "JEANS/PANTS" -> "jeans-pants"
-              const catIdParam = sector.toLowerCase().replace('/', '-');
-              
-              return (
-                <Link 
-                  key={sector} 
-                  href={`/category/${catIdParam}`}
-                  className="nav-item"
-                >
-                  {sector}
-                </Link>
-              );
-            })}
+            {NAV_SECTORS.map(sector => (
+              <Link 
+                key={sector.param} 
+                href={`/category/${sector.param}`}
+                className="nav-item"
+              >
+                {sector.label}
+              </Link>
+            ))}
           </div>
         </div>
         
@@ -121,14 +122,14 @@ export default function Nav() {
           text-transform: uppercase;
         }
         .nav-item:hover {
-          color: #fff;
+          color: #000;
         }
         .scroll-progress {
           position: absolute;
           bottom: 0;
           left: 0;
           height: 2px;
-          background: #fff;
+          background: #000;
           transition: width 0.1s ease-out;
         }
         @media (max-width: 1024px) {
